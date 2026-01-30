@@ -2,1440 +2,1100 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Trip Command Center · Nikita</title>
-  <meta name="description" content="Interactive trip guide with clickable pins, itinerary, restaurants, photo spots, and budget. Multi-trip ready." />
-  <meta name="theme-color" content="#0b0d10" />
-
-  <!-- Leaflet -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-    crossorigin=""
-  />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Trip Command Center</title>
+  <meta name="description" content="Run hour-by-hour travel plans with pins, maps, restaurants, and budget — optimized for phone." />
 
   <style>
     :root{
-      --bg: #0b0d10;
-      --text: #eef2f6;
-      --muted: #a8b3c1;
-      --line: rgba(255,255,255,.10);
-      --shadow: 0 12px 40px rgba(0,0,0,.45);
+      --bg:#0b0f14;
+      --panel: rgba(255,255,255,.06);
+      --panel2: rgba(255,255,255,.045);
+      --stroke: rgba(255,255,255,.10);
+      --stroke2: rgba(255,255,255,.08);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.68);
+      --muted2: rgba(255,255,255,.52);
+      --accent: #ffffff;
+      --shadow: 0 18px 55px rgba(0,0,0,.55);
       --radius: 18px;
-      --max: 1180px;
+      --radius2: 14px;
+      --max: 1120px;
 
-      --cta: #ffffff;
-      --ctaText:#0b0d10;
-
-      --good: rgba(184,199,255,.18);
-      --chip: rgba(255,255,255,.06);
-
-      --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      --h1: clamp(28px, 3.6vw, 46px);
+      --h2: 18px;
+      --body: 15px;
+      --small: 12px;
+      --tight: -0.6px;
     }
     *{box-sizing:border-box}
+    html,body{height:100%}
     body{
       margin:0;
-      font-family:var(--font);
-      background:
-        radial-gradient(900px 500px at 20% 0%, rgba(184,199,255,.14), transparent 60%),
-        radial-gradient(800px 450px at 80% 10%, rgba(255,255,255,.08), transparent 60%),
-        var(--bg);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: radial-gradient(1200px 900px at 20% -10%, rgba(255,255,255,.08), transparent 60%),
+                  radial-gradient(1000px 800px at 80% 0%, rgba(255,255,255,.06), transparent 60%),
+                  var(--bg);
       color:var(--text);
-      line-height:1.4;
+      letter-spacing:-.1px;
     }
-    a{color:inherit;text-decoration:none}
-    .wrap{max-width:var(--max); margin:0 auto; padding: 18px 16px 92px}
+    a{color:inherit}
+    button{font:inherit}
+    .wrap{max-width:var(--max); margin:0 auto; padding:18px 16px 90px;}
+    @media(min-width:980px){ .wrap{padding-bottom:26px;} }
 
-    /* Top bar */
+    /* Topbar (desktop/tablet) */
     .topbar{
-      display:flex; align-items:center; justify-content:space-between;
-      gap: 14px;
-      padding: 8px 0 14px;
-      position: sticky;
-      top: 0;
-      z-index: 50;
-      backdrop-filter: blur(10px);
-      background: rgba(11,13,16,.55);
-      border-bottom: 1px solid rgba(255,255,255,.06);
+      position: sticky; top: 0; z-index: 50;
+      backdrop-filter: blur(14px);
+      background: linear-gradient(to bottom, rgba(11,15,20,.88), rgba(11,15,20,.70));
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      transition: transform .22s ease;
     }
-    .brand{display:flex; gap:10px; align-items:center; padding: 0 4px}
-    .logo{
-      width:34px; height:34px; border-radius:10px;
-      background: linear-gradient(135deg, rgba(184,199,255,.9), rgba(255,255,255,.85));
+    .topbar.is-hidden{ transform: translateY(-105%); }
+    .topbar__inner{
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 12px 16px;
+      display:flex; gap:12px; align-items:center; justify-content:space-between;
+    }
+    .brand{display:flex; gap:12px; align-items:center; min-width: 220px;}
+    .brand__logo{
+      width:40px; height:40px; border-radius:12px;
+      background: linear-gradient(145deg, rgba(255,255,255,.16), rgba(255,255,255,.04));
+      border: 1px solid rgba(255,255,255,.12);
       box-shadow: var(--shadow);
-      flex: 0 0 auto;
     }
-    .brand h1{font-size:14px; margin:0; font-weight:750; letter-spacing:.2px}
-    .brand p{margin:0; font-size:12px; color:var(--muted)}
+    .brand__name{font-weight:800; letter-spacing: var(--tight); line-height:1.05;}
+    .brand__sub{font-size:12px; color:var(--muted); margin-top:3px;}
+    .controls{display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:flex-end;}
+    .select{
+      appearance:none;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius: 12px;
+      outline:none;
+      min-width: 210px;
+    }
 
     .nav{
-      display:flex; gap:10px; align-items:center;
-      font-size:13px; color:var(--muted);
-      flex-wrap: wrap;
-      justify-content: flex-end;
-      padding-right: 4px;
-    }
-
-    .select{
-      border:1px solid var(--line);
+      display:flex; gap:6px; align-items:center;
       background: rgba(255,255,255,.05);
-      color: var(--text);
-      padding: 10px 12px;
+      border: 1px solid rgba(255,255,255,.08);
+      padding: 4px;
       border-radius: 14px;
-      outline: none;
-      font-weight: 650;
-      cursor: pointer;
     }
-
-    .nav a{
-      padding:10px 10px;
-      border-radius:12px;
-      border: 1px solid transparent;
-    }
-    .nav a:hover{
-      background:rgba(255,255,255,.06);
-      color:var(--text);
-      border-color: rgba(255,255,255,.06);
-    }
-
-    .btn{
-      display:inline-flex; align-items:center; justify-content:center;
-      gap:10px;
-      padding: 12px 14px;
-      border-radius: 14px;
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.06);
-      color: var(--text);
-      font-weight: 700;
+    .navBtn{
+      border:0;
+      padding: 9px 11px;
+      border-radius: 12px;
+      background: transparent;
+      color: var(--muted);
       cursor:pointer;
-      transition:.18s ease;
       white-space:nowrap;
     }
-    .btn:hover{transform: translateY(-1px); background: rgba(255,255,255,.09)}
-    .btnPrimary{
-      background: var(--cta);
-      color: var(--ctaText);
-      border-color: transparent;
+    .navBtn.is-active{
+      background: rgba(255,255,255,.10);
+      color: var(--text);
+      border:1px solid rgba(255,255,255,.10);
     }
-    .btnPrimary:hover{background: rgba(255,255,255,.92)}
 
-    /* Layout */
+    .primaryCta{
+      text-decoration:none;
+      display:inline-flex; align-items:center; justify-content:center;
+      padding: 10px 14px;
+      border-radius: 14px;
+      background: #fff;
+      color: #0b0f14;
+      font-weight:800;
+      border: 1px solid rgba(255,255,255,.20);
+      box-shadow: 0 12px 35px rgba(0,0,0,.45);
+    }
+    .ghostCta{
+      display:inline-flex; align-items:center; justify-content:center;
+      padding: 10px 14px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.10);
+      color: var(--text);
+      text-decoration:none;
+      font-weight:700;
+    }
+
+    /* Mobile bottom nav */
+    .bottomNav{
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      z-index: 60;
+      padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+      background: linear-gradient(to top, rgba(11,15,20,.92), rgba(11,15,20,.55));
+      border-top: 1px solid rgba(255,255,255,.08);
+      display:flex; gap:10px;
+    }
+    .bottomNav .navItem{
+      flex:1;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
+      color: var(--muted);
+      border-radius: 16px;
+      padding: 12px 10px;
+      text-align:center;
+      font-weight:800;
+      letter-spacing:-.2px;
+    }
+    .bottomNav .navItem.is-active{
+      background:#fff;
+      color:#0b0f14;
+      border-color: rgba(255,255,255,.25);
+    }
+    @media(min-width:980px){ .bottomNav{display:none;} }
+
+    /* Views */
+    .view{display:none}
+    .view.is-active{display:block}
+
+    /* Hero */
     .hero{
-      display:grid;
-      grid-template-columns: 1.05fr .95fr;
-      gap: 14px;
-      align-items: stretch;
-      margin-top: 12px;
+      padding: 18px 0 14px;
     }
-    .card{
-      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-    }
-    .heroCopy{padding: 18px}
     .kicker{
-      display:inline-flex; gap:8px; align-items:center;
-      padding: 8px 10px;
-      border-radius: 999px;
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.04);
-      color: var(--muted);
-      font-size: 12px;
-      margin-bottom: 12px;
-    }
-    .heroCopy h2{
-      margin: 0 0 10px;
-      font-size: clamp(26px, 3.6vw, 42px);
-      letter-spacing: -0.8px;
-      line-height: 1.06;
-    }
-    .heroCopy .sub{
-      margin: 0 0 14px;
-      color: var(--muted);
-      font-size: 15px;
-      max-width: 62ch;
-    }
-    .heroActions{display:flex; gap:10px; flex-wrap:wrap; margin-top: 10px}
-    .metaRow{
-      display:flex; gap:8px; flex-wrap:wrap; margin-top: 14px;
-      color: var(--muted);
-      font-size: 13px;
+      display:flex; gap:8px; flex-wrap:wrap;
+      margin-bottom: 10px;
     }
     .pill{
-      padding: 9px 11px;
-      border-radius: 999px;
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.04);
-    }
-
-    /* Map card */
-    .mapCard{padding: 12px; display:flex; flex-direction:column; gap:10px}
-    .mapTop{
-      display:flex; align-items:center; justify-content:space-between; gap:10px;
-      padding: 2px 2px 0;
-    }
-    .mapTop h3{margin:0; font-size: 14px}
-    .mapTop span{color:var(--muted); font-size:12px}
-
-    .mapShell{
-      position:relative;
-      border-radius: 14px;
-      overflow:hidden;
-      border:1px solid rgba(255,255,255,.12);
-      background: #0a0d12;
-      min-height: 440px;
-      flex: 1;
-    }
-    #map{
-      width:100%;
-      height: 440px;
-      filter: saturate(1.1) contrast(1.05);
-    }
-
-    /* Map overlay UI */
-    .mapOverlay{
-      position:absolute;
-      left: 10px;
-      top: 10px;
-      right: 10px;
-      display:flex;
-      gap: 10px;
-      justify-content: space-between;
-      pointer-events: none;
-      z-index: 5;
-    }
-    .mapOverlay .chipBar{
-      display:flex; gap:8px; flex-wrap:wrap;
-      pointer-events: auto;
-    }
-    .chip{
-      display:inline-flex; gap:8px; align-items:center;
-      border:1px solid rgba(255,255,255,.14);
-      background: rgba(11,13,16,.60);
-      backdrop-filter: blur(10px);
-      padding: 8px 10px;
-      border-radius: 999px;
-      color: var(--muted);
       font-size: 12px;
-      cursor:pointer;
-      user-select:none;
-      transition:.15s;
-    }
-    .chip:hover{background: rgba(255,255,255,.08); color: var(--text)}
-    .chip.active{
-      background: var(--good);
-      color: var(--text);
-      border-color: rgba(184,199,255,.25);
-    }
-    .mapRightButtons{
-      display:flex; gap:8px;
-      pointer-events: auto;
-    }
-    .miniBtn{
-      padding: 10px 12px;
-      border-radius: 12px;
-      border:1px solid rgba(255,255,255,.14);
-      background: rgba(11,13,16,.60);
-      backdrop-filter: blur(10px);
-      color: var(--text);
-      font-weight: 700;
-      cursor:pointer;
-    }
-    .miniBtn:hover{background: rgba(255,255,255,.09)}
-
-    /* Trip tabs (in-map) */
-    .tripTabs{
-      position:absolute;
-      left: 10px;
-      bottom: 10px;
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-      z-index: 6;
-    }
-
-    /* Drawer (pins / previews) */
-    .drawer{
-      position:absolute;
-      top: 10px;
-      right: 10px;
-      width: min(380px, calc(100% - 20px));
-      border-radius: 16px;
-      border:1px solid rgba(255,255,255,.14);
-      background: rgba(11,13,16,.72);
-      backdrop-filter: blur(12px);
-      box-shadow: var(--shadow);
-      overflow:hidden;
-      display:none;
-      z-index: 10;
-    }
-    .drawer.show{display:block}
-    .drawerHead{
-      padding: 12px 12px 10px;
-      display:flex; align-items:center; justify-content:space-between; gap:10px;
-      border-bottom: 1px solid rgba(255,255,255,.10);
-    }
-    .drawerTitle{display:flex; flex-direction:column; gap:2px}
-    .drawerTitle strong{font-size: 13px}
-    .drawerTitle span{font-size: 12px; color: var(--muted)}
-    .xbtn{
-      padding: 8px 10px;
-      border-radius: 12px;
+      padding:6px 10px;
+      border-radius: 999px;
       border:1px solid rgba(255,255,255,.12);
       background: rgba(255,255,255,.05);
-      color: var(--text);
-      cursor:pointer;
-      font-weight: 800;
+      color: var(--muted);
     }
-    .drawerBody{padding: 12px}
-    .search{
-      display:flex; gap:8px; margin-bottom: 10px;
+    .heroTitle{
+      font-size: var(--h1);
+      letter-spacing: var(--tight);
+      font-weight: 900;
+      line-height: 1.03;
+      margin: 0 0 10px;
     }
-    .search input{
-      width:100%;
-      padding: 10px 12px;
-      border-radius: 12px;
-      border:1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.04);
-      color: var(--text);
-      outline:none;
-      font-weight: 650;
+    .heroSub{
+      margin:0;
+      color: var(--muted);
+      max-width: 70ch;
+      line-height: 1.35;
+      font-size: 15px;
     }
-    .drawerActions{display:flex; gap:8px; flex-wrap:wrap; margin-top: 10px}
-    .hint{color: var(--muted); font-size: 12px; margin: 0 0 8px}
-
-    .poiList{display:flex; flex-direction:column; gap:8px; max-height: 300px; overflow:auto; padding-right: 2px}
-    .poiItem{
-      padding: 10px 10px;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.03);
-      cursor:pointer;
-      transition:.12s;
+    .heroActions{
+      display:flex; gap:10px; flex-wrap:wrap;
+      margin-top: 16px;
     }
-    .poiItem:hover{background: rgba(255,255,255,.07)}
-    .poiItem strong{display:block; font-size: 13px}
-    .poiItem span{display:block; font-size: 12px; color: var(--muted); margin-top: 2px}
-    .anchorNote{margin-top: 10px; display:flex; gap:8px; flex-wrap:wrap}
 
     /* Sections */
-    .section{margin-top: 18px}
-    .sectionHead{
-      display:flex; align-items:flex-end; justify-content:space-between; gap:10px;
-      margin-bottom: 10px;
-    }
-    .sectionHead h3{margin:0; font-size: 18px; letter-spacing:-.2px}
-    .sectionHead p{margin:0; color:var(--muted); font-size: 13px}
-
-    .grid3{display:grid; grid-template-columns: repeat(3, 1fr); gap: 12px}
-    .mini{padding: 14px}
-    .mini h4{margin:0 0 6px; font-size: 14px}
-    .mini p{margin:0; color:var(--muted); font-size: 13px}
-
-    /* Itinerary accordion */
-    .panel{
-      background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.025));
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      padding: 12px;
-    }
-    details{
-      border:1px solid rgba(255,255,255,.10);
-      border-radius: 14px;
-      background: rgba(255,255,255,.03);
-      overflow:hidden;
-      margin-bottom: 10px;
-    }
-    summary{
-      list-style:none;
-      cursor:pointer;
-      padding: 14px 14px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      font-weight:800;
-    }
-    summary::-webkit-details-marker{display:none}
-    .sumMeta{color:var(--muted); font-weight:650; font-size: 12px}
-    .detailsBody{padding: 0 14px 14px; color: var(--muted); font-size: 13px}
-    .detailsBody ul{margin:10px 0 0; padding-left: 18px}
-    .detailsBody li{margin:6px 0}
-
-    /* Cards for restaurants / photo spots / budget */
-    .cards{display:grid; grid-template-columns: repeat(3, 1fr); gap: 12px}
-    .rcard{
-      padding: 14px;
-      border-radius: 16px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.03);
-    }
-    .rcard h4{margin:0 0 6px; font-size: 14px}
-    .rcard p{margin:0; color: var(--muted); font-size: 13px}
-    .chipsRow{display:flex; flex-wrap:wrap; gap:8px; margin-top: 10px}
-    .tag{
-      display:inline-flex; align-items:center; gap:8px;
-      border:1px solid rgba(255,255,255,.12);
+    .section{
+      margin-top: 18px;
       background: rgba(255,255,255,.04);
-      padding: 8px 10px;
-      border-radius: 999px;
-      color: var(--muted);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: var(--radius);
+      overflow:hidden;
+    }
+    .sectionHeader{
+      display:flex; justify-content:space-between; align-items:center; gap:10px;
+      padding: 14px 14px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.03);
+    }
+    .sectionHeader h2{margin:0; font-size:16px; letter-spacing:-.2px;}
+    .sectionHeader p{margin:0; color:var(--muted); font-size:12px}
+    .sectionBody{padding: 14px;}
+
+    /* Day cards (Plan) */
+    .dayCard{
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.09);
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+    .dayTop{
+      display:flex; justify-content:space-between; gap:12px; align-items:flex-start;
+    }
+    .dayTitle{
+      font-weight: 950;
+      letter-spacing: -0.6px;
+      font-size: 18px;
+      line-height: 1.1;
+      margin:0;
+    }
+    .dayTags{display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end;}
+    .tag{
       font-size: 12px;
+      padding:6px 10px;
+      border-radius: 999px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.18);
+      color: var(--muted);
+      white-space:nowrap;
+    }
+    .timeline{
+      margin-top: 10px;
+      padding-left: 18px;
+      color: var(--text);
+      line-height: 1.45;
+    }
+    .timeline li{margin:6px 0; color: rgba(255,255,255,.86);}
+    .timeline span{color: var(--muted);}
+    .dayActions{
+      display:flex; gap:10px; flex-wrap:wrap;
+      margin-top: 12px;
+    }
+    .btn{
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 14px;
+      font-weight: 800;
+      cursor:pointer;
+    }
+    .btn.primary{
+      background: #fff;
+      color: #0b0f14;
+      border-color: rgba(255,255,255,.25);
+    }
+    .btn.small{padding:9px 11px; font-size:13px; border-radius: 12px;}
+    .btn:active{transform: scale(.99);}
+
+    /* Map view */
+    .mapFrame{
+      width:100%;
+      aspect-ratio: 16/10;
+      border:0;
+      border-radius: 18px;
+      overflow:hidden;
+      background: rgba(255,255,255,.03);
+    }
+    @media(max-width:560px){
+      .mapFrame{aspect-ratio: 10/14;}
+    }
+    .searchRow{
+      display:flex; gap:10px; flex-wrap:wrap;
+      margin-top: 12px;
+    }
+    .searchRow input{
+      flex:1;
+      min-width: 220px;
+      padding: 12px 12px;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      outline:none;
+    }
+
+    .pinList{
+      margin-top: 12px;
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    @media(min-width:900px){
+      .pinList{grid-template-columns: 1fr 1fr;}
+    }
+    .pinItem{
+      padding: 12px;
+      border-radius: 16px;
+      border:1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.05);
+      display:flex; justify-content:space-between; gap:10px; align-items:flex-start;
+    }
+    .pinItem strong{display:block; font-weight:900; letter-spacing:-.3px;}
+    .pinItem small{display:block; color: var(--muted); margin-top:2px;}
+    .pinItem a{
+      white-space:nowrap;
+      text-decoration:none;
+      font-weight:900;
+      padding: 9px 10px;
+      border-radius: 12px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.18);
+    }
+
+    /* Budget */
+    .budgetCard{
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 18px;
+      padding: 16px;
+    }
+    .budgetHeader{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
+    .budgetHeader h2{margin:0;font-size:18px;letter-spacing:-.2px;}
+    .budgetMeta{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
+    .budgetTop{display:grid;gap:14px;margin-top:14px;}
+    @media (min-width: 860px){
+      .budgetTop{grid-template-columns: 1fr 1.2fr; align-items:stretch;}
+    }
+    .budgetTotal .label{opacity:.8;font-size:12px;margin-bottom:6px;}
+    .budgetTotal .value{font-size:34px;font-weight:950;letter-spacing:-.8px;}
+    .budgetTotal .sub{opacity:.8;margin-top:4px;font-size:13px;}
+    .budgetSplit{display:flex;flex-direction:column;gap:10px;}
+    .splitRow{
+      display:flex;align-items:baseline;gap:10px;justify-content:space-between;
+      padding:12px;border-radius:14px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .splitRow span{opacity:.9}
+    .splitRow em{opacity:.75;font-style:normal;margin-left:auto;}
+    .budgetNotes{margin-top:12px;}
+    .budgetNotes summary{cursor:pointer;opacity:.9}
+    .budgetNotes ul{margin:10px 0 0 18px;opacity:.85}
+    .budgetDays{margin-top:14px;display:flex;flex-direction:column;gap:10px;}
+    .dayRow{
+      width:100%;
+      display:grid;
+      grid-template-columns: 1fr auto auto;
+      gap:10px;
+      align-items:center;
+      padding:12px 14px;
+      border-radius:14px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: inherit;
+      cursor:pointer;
+    }
+    .dayRow strong{font-weight:950}
+    .dayRow em{opacity:.75;font-style:normal}
+
+    /* Drawer */
+    .drawerBackdrop{
+      position:fixed; inset:0; z-index:80;
+      background: rgba(0,0,0,.55);
+      backdrop-filter: blur(6px);
+      display:none;
+      padding: 16px;
+    }
+    .drawerBackdrop.is-open{display:flex; align-items:flex-end; justify-content:center;}
+    .drawer{
+      width:min(720px, 100%);
+      border-radius: 22px 22px 16px 16px;
+      background: rgba(15,20,28,.96);
+      border:1px solid rgba(255,255,255,.10);
+      box-shadow: 0 30px 90px rgba(0,0,0,.65);
+      overflow:hidden;
+      max-height: 82vh;
+      display:flex; flex-direction:column;
+    }
+    .drawerHeader{
+      padding: 14px 14px;
+      display:flex; justify-content:space-between; gap:10px; align-items:flex-start;
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    .drawerHeader h3{margin:0; font-size:16px; font-weight:950; letter-spacing:-.3px;}
+    .drawerHeader p{margin:4px 0 0; color:var(--muted); font-size:12px}
+    .drawerClose{
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 9px 11px;
+      cursor:pointer;
+      font-weight:900;
+    }
+    .drawerBody{
+      padding: 12px 14px 14px;
+      overflow:auto;
+    }
+    .restItem{
+      padding: 12px;
+      border-radius: 16px;
+      border:1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.05);
+      margin-bottom: 10px;
+      display:flex; justify-content:space-between; gap:10px; align-items:flex-start;
+    }
+    .restItem strong{display:block; font-weight:950;}
+    .restItem small{display:block; color:var(--muted); margin-top:2px}
+    .restItem a{
+      text-decoration:none;
+      font-weight:950;
+      padding: 9px 10px;
+      border-radius: 12px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.18);
+      white-space:nowrap;
     }
 
     /* Footer */
-    .footer{
+    footer{
       margin-top: 18px;
-      padding: 18px;
-      border: 1px solid rgba(255,255,255,.10);
-      border-radius: 18px;
-      background: rgba(255,255,255,.03);
-      display:grid;
-      grid-template-columns: 1.2fr 1fr 1fr 1fr;
-      gap: 14px;
-    }
-    .fcol h5{margin:0 0 8px; font-size: 13px}
-    .fcol a, .fcol p{
-      display:block;
-      margin: 0 0 7px;
+      padding: 16px;
+      border-radius: var(--radius);
+      border:1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.04);
       color: var(--muted);
       font-size: 12px;
-      line-height: 1.35;
+      display:flex; flex-wrap:wrap; gap:10px; justify-content:space-between; align-items:center;
     }
-    .fcol a:hover{color: var(--text)}
-    .fineprint{
-      margin-top: 10px;
-      color: var(--muted);
-      font-size: 11px;
-      opacity: .9;
-      grid-column: 1 / -1;
-      border-top: 1px solid rgba(255,255,255,.08);
-      padding-top: 10px;
-      display:flex;
-      justify-content: space-between;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    /* Sticky mobile CTA */
-    .stickyCta{
-      position:fixed;
-      left: 0; right:0; bottom:0;
-      padding: 10px 12px;
-      background: rgba(11,13,16,.78);
-      backdrop-filter: blur(10px);
-      border-top: 1px solid rgba(255,255,255,.10);
-      display:none;
-      z-index: 99;
-    }
-    .stickyRow{
-      max-width: var(--max);
-      margin: 0 auto;
-      display:flex;
-      gap: 10px;
-      align-items:center;
-      justify-content:space-between;
-    }
-    .stickyRow .btn{flex:1}
-
-    @media (max-width: 1020px){
-      .hero{grid-template-columns: 1fr}
-      #map{height: 380px}
-      .mapShell{min-height: 380px}
-      .grid3{grid-template-columns: 1fr}
-      .cards{grid-template-columns: 1fr}
-      .footer{grid-template-columns: 1fr 1fr}
-    }
-    @media (max-width: 720px){
-      .nav a{display:none}
-      .stickyCta{display:block}
-      .wrap{padding-bottom: 118px}
-      .footer{grid-template-columns: 1fr}
-    }
+    footer a{opacity:.9}
   </style>
 </head>
 
 <body>
-  <div class="wrap" id="top">
-    <!-- Top Bar -->
-    <header class="topbar">
+
+  <!-- TOPBAR -->
+  <header class="topbar" id="topbar">
+    <div class="topbar__inner">
       <div class="brand">
-        <div class="logo" aria-hidden="true"></div>
+        <div class="brand__logo" aria-hidden="true"></div>
         <div>
-          <h1 id="siteTitle">Trip Command Center · Nikita</h1>
-          <p id="siteSubtitle">Interactive guide · pins · plan · food · photos</p>
+          <div class="brand__name">Trip Command Center · Nikita</div>
+          <div class="brand__sub" id="routeLine">—</div>
         </div>
       </div>
 
-      <nav class="nav" aria-label="Primary">
-        <!-- Multi-trip navigation (scales) -->
-        <select class="select" id="tripSelect" aria-label="Select trip"></select>
+      <div class="controls">
+        <select id="tripSelect" class="select" aria-label="Select trip"></select>
 
-        <a href="#itinerary">Itinerary</a>
-        <a href="#restaurants">Restaurants</a>
-        <a href="#photos">Photo spots</a>
-        <a href="#budget">Budget</a>
-        <a href="#mapSection">Map</a>
+        <nav class="nav" aria-label="Primary navigation">
+          <button class="navBtn is-active" data-view="plan">Plan</button>
+          <button class="navBtn" data-view="map">Map</button>
+          <button class="navBtn" data-view="food">Food</button>
+          <button class="navBtn" data-view="budget">Budget</button>
+        </nav>
 
-        <a class="btn btnPrimary" id="openMapBtn" href="#" target="_blank" rel="noopener">Open Google Map</a>
-      </nav>
-    </header>
+        <a id="openGoogleMapTop" class="primaryCta" href="#" target="_blank" rel="noopener">Open Google Map</a>
+      </div>
+    </div>
+  </header>
 
-    <!-- Hero -->
+  <div class="wrap">
+    <!-- HERO -->
     <section class="hero">
-      <div class="card heroCopy">
-        <div class="kicker" id="kickerText">Loading…</div>
-        <h2 id="heroTitle">Loading…</h2>
-        <p class="sub" id="heroSub">Loading…</p>
+      <div class="kicker" id="heroPills"></div>
+      <h1 class="heroTitle" id="heroTitle">—</h1>
+      <p class="heroSub" id="heroSub">—</p>
 
-        <div class="heroActions">
-          <a class="btn btnPrimary" id="primaryCta" href="#" target="_blank" rel="noopener">Open Live Google Map</a>
-          <a class="btn" href="#mapSection">Use Interactive Map</a>
-          <button class="btn" id="openDrawerBtn" type="button">Search Pins</button>
-        </div>
-
-        <div class="metaRow" id="metaRow"></div>
-      </div>
-
-      <!-- Map -->
-      <div class="card mapCard" id="mapSection">
-        <div class="mapTop">
-          <div>
-            <h3>Interactive Map</h3>
-            <span>Trip tabs + pin previews + jump to plan</span>
-          </div>
-          <div style="display:flex; gap:8px; flex-wrap:wrap">
-            <button class="btn" id="fitBtn" type="button">Fit to Pins</button>
-            <button class="btn" id="drawerBtn2" type="button">Pins</button>
-          </div>
-        </div>
-
-        <div class="mapShell">
-          <div id="map" aria-label="Interactive map"></div>
-
-          <!-- Top overlay: category filters -->
-          <div class="mapOverlay">
-            <div class="chipBar" id="filterChips"></div>
-            <div class="mapRightButtons">
-              <button class="miniBtn" id="toggleLabelsBtn" type="button">Labels</button>
-            </div>
-          </div>
-
-          <!-- Bottom overlay: Trip Tabs (your “another tab/pin in the map button”) -->
-          <div class="tripTabs" id="tripTabs"></div>
-
-          <!-- Pins drawer -->
-          <aside class="drawer" id="drawer" aria-label="Pins drawer">
-            <div class="drawerHead">
-              <div class="drawerTitle">
-                <strong id="drawerTitle">Pins</strong>
-                <span id="drawerSubtitle">Search + click to preview</span>
-              </div>
-              <button class="xbtn" id="closeDrawerBtn" type="button">✕</button>
-            </div>
-            <div class="drawerBody">
-              <p class="hint" id="drawerHint">Search by name, city, category, or note.</p>
-              <div class="search">
-                <input id="searchInput" type="text" placeholder="Search pins…" />
-                <button class="btn" id="clearSearchBtn" type="button">Clear</button>
-              </div>
-
-              <div class="poiList" id="poiList"></div>
-
-              <div class="drawerActions">
-                <a class="btn btnPrimary" id="drawerOpenGoogleBtn" href="#" target="_blank" rel="noopener">Open Google Map</a>
-                <button class="btn" id="copyShareBtn" type="button">Copy Share Link</button>
-              </div>
-
-              <p class="hint" style="margin-top:10px">
-                Pin preview includes “Open full plan” to jump to the exact day/section.
-              </p>
-            </div>
-          </aside>
-        </div>
+      <div class="heroActions">
+        <a id="openGoogleMapHero" class="primaryCta" href="#" target="_blank" rel="noopener">Open Live Google Map</a>
+        <button class="btn" id="goPlan">View Plan</button>
+        <button class="btn" id="goMap">View Map</button>
       </div>
     </section>
 
-    <!-- Value props -->
-    <section class="section">
-      <div class="grid3">
-        <div class="card mini">
-          <h4>Built to execute</h4>
-          <p>Not a blog. A runbook you can operate from your phone.</p>
-        </div>
-        <div class="card mini">
-          <h4>Map-first experience</h4>
-          <p>Trip tabs + filters + previews. No scrolling walls of text.</p>
-        </div>
-        <div class="card mini">
-          <h4>Scales to many trips</h4>
-          <p>Add another trip by copying one object in the trips array.</p>
-        </div>
-      </div>
-    </section>
+    <!-- VIEWS -->
+    <section id="view-plan" class="view is-active"></section>
+    <section id="view-map" class="view"></section>
+    <section id="view-food" class="view"></section>
+    <section id="view-budget" class="view"></section>
 
-    <!-- Itinerary -->
-    <section class="section" id="itinerary">
-      <div class="sectionHead">
-        <div>
-          <h3>Itinerary</h3>
-          <p>Expand only what you need. Fast scan, low friction.</p>
-        </div>
-        <a class="btn btnPrimary" id="itineraryOpenMapBtn" href="#" target="_blank" rel="noopener">Open Google Map</a>
-      </div>
-      <div class="panel" id="itineraryContainer"></div>
-    </section>
-
-    <!-- Restaurants -->
-    <section class="section" id="restaurants">
-      <div class="sectionHead">
-        <div>
-          <h3>Restaurants (recommendations)</h3>
-          <p>Mid / cheap-mid biased. No tourist-trap fluff.</p>
-        </div>
-      </div>
-      <div class="cards" id="restaurantCards"></div>
-    </section>
-
-    <!-- Photo Spots -->
-    <section class="section" id="photos">
-      <div class="sectionHead">
-        <div>
-          <h3>Photo spots (your “course for pictures”)</h3>
-          <p>Where to shoot + best light + what shot to take.</p>
-        </div>
-      </div>
-      <div class="cards" id="photoCards"></div>
-    </section>
-
-    <!-- Budget -->
-    <section class="section" id="budget">
-      <div class="sectionHead">
-        <div>
-          <h3>Budget</h3>
-          <p>Optional, collapsible, useful when planning.</p>
-        </div>
-      </div>
-      <div class="panel" id="budgetPanel"></div>
-    </section>
-
-    <!-- Footer -->
-    <footer class="footer" id="footer">
-      <div class="fcol">
-        <h5 id="footerBrand">Trip Command Center</h5>
-        <p id="footerDesc">An interactive trip guide: map + plan + food + photo spots.</p>
-        <p id="footerMeta">Built for fast decisions, not endless browsing.</p>
-      </div>
-
-      <div class="fcol">
-        <h5>Trips</h5>
-        <div id="footerTrips"></div>
-      </div>
-
-      <div class="fcol">
-        <h5>Quick links</h5>
-        <a href="#mapSection">Interactive map</a>
-        <a href="#itinerary">Itinerary</a>
-        <a href="#restaurants">Restaurants</a>
-        <a href="#photos">Photo spots</a>
-        <a href="#budget">Budget</a>
-      </div>
-
-      <div class="fcol">
-        <h5>Actions</h5>
-        <a id="footerOpenMap" href="#" target="_blank" rel="noopener">Open Google Map</a>
-        <a href="#top">Back to top</a>
-        <a href="#" id="footerShare">Copy share link</a>
-      </div>
-
-      <div class="fineprint">
-        <span>© <span id="year"></span> · Personal trip guide</span>
-        <span>Disclaimer: verify hours, tickets, and closures locally.</span>
+    <footer>
+      <div>Built to run from your phone. Multi-trip ready.</div>
+      <div>
+        <a href="#" id="footerGoogleMap" target="_blank" rel="noopener">Open Google Map</a>
+        ·
+        <a href="#" id="footerShare">Share link</a>
       </div>
     </footer>
   </div>
 
-  <!-- Sticky mobile CTA -->
-  <div class="stickyCta" role="region" aria-label="Quick actions">
-    <div class="stickyRow">
-      <a class="btn btnPrimary" id="stickyOpenMap" href="#" target="_blank" rel="noopener">Open Map</a>
-      <button class="btn" id="stickyPins" type="button">Pins</button>
+  <!-- MOBILE BOTTOM NAV -->
+  <div class="bottomNav" aria-label="Bottom navigation">
+    <button class="navItem is-active" data-view="plan">Plan</button>
+    <button class="navItem" data-view="map">Map</button>
+    <button class="navItem" data-view="food">Food</button>
+    <button class="navItem" data-view="budget">Budget</button>
+  </div>
+
+  <!-- RESTAURANTS DRAWER -->
+  <div class="drawerBackdrop" id="drawerBackdrop" role="dialog" aria-modal="true" aria-label="Restaurant drawer">
+    <div class="drawer">
+      <div class="drawerHeader">
+        <div>
+          <h3 id="drawerTitle">Restaurants</h3>
+          <p id="drawerSub">—</p>
+        </div>
+        <button class="drawerClose" id="drawerClose">Close</button>
+      </div>
+      <div class="drawerBody" id="drawerBody"></div>
     </div>
   </div>
 
-  <script
-    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-    crossorigin=""
-  ></script>
+<script>
+/* =========================
+   DATA (Multi-trip ready)
+   Add trips here. UI auto-updates.
+========================= */
 
-  <script>
-    // =========================================================
-    // MULTI-TRIP DATA MODEL (scales to many trips)
-    // Add trips by duplicating an object in `trips`.
-    // Later, you can load this from JSON files instead.
-    // =========================================================
-    const trips = [
-      // -------------------------
-      // TRIP 1: PERU (your existing)
-      // -------------------------
+const TRIPS = {
+  peru: {
+    id: "peru",
+    name: "Peru Trip (Jan 15–21)",
+    routeLine: "Lima → Paracas → Cusco → Machu Picchu → Nazca → Lima",
+    heroTitle: "Peru, run hour-by-hour. Zero guesswork.",
+    heroSub: "Plan + map + restaurants + photo spots + budget. Built to run from your phone.",
+    pills: ["Optimized for time", "Mid / cheap-mid food", "Pin previews + deep links", "Multi-trip ready"],
+    googleMapUrl: "https://maps.app.goo.gl/uTUuF275HcNx2AcP6?g_st=i",
+    mapEmbedUrl: "https://www.google.com/maps/d/u/0/embed?mid=1", // optional: replace with your embed if you have it. If not, we’ll use a fallback below.
+    days: [
       {
-        id: "peru-jan",
-        name: "Peru Trip (Jan 15–21)",
-        short: "Lima → Paracas → Cusco → Machu Picchu → Nazca → Lima",
-        googleMapUrl: "https://maps.app.goo.gl/uTUuF275HcNx2AcP6?g_st=i",
-        heroTitle: "Peru, Run Hour-by-Hour. Zero Guesswork.",
-        heroSub: "Interactive map + pins + itinerary + restaurants + photo spots. Built to run from your phone.",
-        meta: ["Optimized for time", "Mid / cheap-mid food", "Pin previews + deep links", "Multi-trip ready"],
-        mapView: { center: [-12.0464, -77.0428], zoom: 5 },
-        categories: [
-          { key: "logistics", label: "Logistics" },
-          { key: "attraction", label: "Attractions" },
-          { key: "food", label: "Food" },
-          { key: "photo", label: "Photo" }
-        ],
-        pois: [
-          { id:"lim-airport", name:"Jorge Chávez Intl Airport (LIM)", city:"Lima", cat:"logistics", lat:-12.0219, lng:-77.1143, note:"Arrivals / rental car / departure.", planAnchor:"#day-jan15", googleQuery:"Jorge Chávez International Airport" },
-          { id:"pachacamac", name:"Pachacamac Archaeological Complex", city:"Lima", cat:"attraction", lat:-12.2639, lng:-76.8746, note:"Morning archaeology hit.", planAnchor:"#day-jan15", googleQuery:"Pachacamac Archaeological Complex" },
-          { id:"mamacona", name:"Hacienda Mamacona", city:"Lima", cat:"food", lat:-12.2616, lng:-76.8790, note:"Brunch stop near Pachacamac.", planAnchor:"#day-jan15", googleQuery:"Hacienda Mamacona" },
-          { id:"tanta", name:"Tanta (Larcomar)", city:"Lima", cat:"food", lat:-12.1310, lng:-77.0305, note:"Safe Peruvian comfort; ocean view.", planAnchor:"#day-jan15", googleQuery:"Tanta Larcomar" },
-          { id:"lalucha", name:"La Lucha (Miraflores)", city:"Lima", cat:"food", lat:-12.1254, lng:-77.0309, note:"Fast, cheap, reliable.", planAnchor:"#day-jan15", googleQuery:"La Lucha Sanguchería Miraflores" },
-          { id:"panchita", name:"Panchita", city:"Lima", cat:"food", lat:-12.1190, lng:-77.0295, note:"Traditional classics. Busy.", planAnchor:"#day-jan20", googleQuery:"Panchita Miraflores" },
-          { id:"parque-amor", name:"Parque del Amor (cliffs)", city:"Lima", cat:"photo", lat:-12.1322, lng:-77.0306, note:"Sunset clifftop walk.", planAnchor:"#day-jan20", googleQuery:"Parque del Amor Miraflores" },
-          { id:"paracas-reserve", name:"Paracas National Reserve", city:"Paracas", cat:"attraction", lat:-13.8512, lng:-76.2719, note:"Quick loop viewpoints.", planAnchor:"#day-jan15", googleQuery:"Reserva Nacional de Paracas" },
-          { id:"playa-roja", name:"Playa Roja", city:"Paracas", cat:"photo", lat:-13.8669, lng:-76.2680, note:"Red sand + cliffs.", planAnchor:"#day-jan15", googleQuery:"Playa Roja Paracas" },
-          { id:"pukasoncco", name:"Pukasoncco", city:"Paracas", cat:"food", lat:-13.8366, lng:-76.2508, note:"Home-style, good prices.", planAnchor:"#day-jan15", googleQuery:"Pukasoncco Arte y Restaurante Paracas" },
-          { id:"hacienda-sanjose", name:"Hacienda San José", city:"Chincha", cat:"attraction", lat:-13.4309, lng:-76.1306, note:"Colonial house + tunnels.", planAnchor:"#day-jan15", googleQuery:"Hacienda San José Chincha" },
-          { id:"cus-airport", name:"Cusco Airport (CUZ)", city:"Cusco", cat:"logistics", lat:-13.5357, lng:-71.9388, note:"Acclimatize day 1.", planAnchor:"#day-jan16", googleQuery:"Alejandro Velasco Astete International Airport" },
-          { id:"plaza-cusco", name:"Plaza de Armas (Cusco)", city:"Cusco", cat:"attraction", lat:-13.5164, lng:-71.9781, note:"Base zone.", planAnchor:"#day-jan16", googleQuery:"Plaza de Armas Cusco" },
-          { id:"qorikancha", name:"Qorikancha", city:"Cusco", cat:"attraction", lat:-13.5220, lng:-71.9753, note:"Temple of the Sun.", planAnchor:"#day-jan16", googleQuery:"Qorikancha" },
-          { id:"jacks", name:"Jack’s Café", city:"Cusco", cat:"food", lat:-13.5169, lng:-71.9775, note:"Value + big portions.", planAnchor:"#day-jan16", googleQuery:"Jack's Cafe Cusco" },
-          { id:"chakruna", name:"Chakruna", city:"Cusco", cat:"food", lat:-13.5169, lng:-71.9766, note:"Cheap + consistent.", planAnchor:"#day-jan16", googleQuery:"Chakruna Native Burgers Cusco" },
-          { id:"sacsay", name:"Sacsayhuamán", city:"Cusco", cat:"photo", lat:-13.5099, lng:-71.9818, note:"Stone scale + views.", planAnchor:"#day-jan18", googleQuery:"Sacsayhuaman" },
-          { id:"sanpedro", name:"San Pedro Station", city:"Cusco", cat:"logistics", lat:-13.5211, lng:-71.9812, note:"Vistadome option.", planAnchor:"#day-jan17", googleQuery:"Estación de tren San Pedro Cusco" },
-          { id:"poroy", name:"Poroy Station", city:"Cusco", cat:"logistics", lat:-13.4959, lng:-72.0390, note:"Hiram Bingham option.", planAnchor:"#day-jan17", googleQuery:"Estación Poroy Cusco" },
-          { id:"aguas", name:"Aguas Calientes", city:"Machu Picchu", cat:"logistics", lat:-13.1540, lng:-72.5250, note:"Town base.", planAnchor:"#day-jan17", googleQuery:"Aguas Calientes Machu Picchu" },
-          { id:"mp-gate", name:"Machu Picchu (Gate)", city:"Machu Picchu", cat:"attraction", lat:-13.1631, lng:-72.5450, note:"Circuit 2; no re-entry.", planAnchor:"#day-jan17", googleQuery:"Machu Picchu entrance" },
-          { id:"nzc-airport", name:"Nazca Airport (NZC)", city:"Nazca", cat:"logistics", lat:-14.8540, lng:-74.9610, note:"Nazca Lines flights.", planAnchor:"#day-jan19", googleQuery:"Aeropuerto Maria Reiche Neuman Nazca" },
-          { id:"cantalloc", name:"Cantalloc Aqueducts", city:"Nazca", cat:"attraction", lat:-14.8292, lng:-74.9466, note:"Spiral geometry.", planAnchor:"#day-jan19", googleQuery:"Acueductos de Cantalloc" },
-          { id:"chauchilla", name:"Chauchilla Cemetery", city:"Nazca", cat:"attraction", lat:-14.8194, lng:-75.1066, note:"Desert site.", planAnchor:"#day-jan19", googleQuery:"Cementerio de Chauchilla" },
-          { id:"mamashana", name:"Mamashana", city:"Nazca", cat:"food", lat:-14.8318, lng:-74.9387, note:"Traveler favorite.", planAnchor:"#day-jan19", googleQuery:"Mamashana Cafe Restaurante Nazca" },
-        ],
-        itinerary: [
-          { id:"day-jan15", title:"JAN 15 — Arrival → Coastal Loop → Lima", meta:"Lima • Pachacamac • Paracas • Chincha",
-            items:[
-              "05:00–06:00 Land in Lima, immigration, bags",
-              "06:00–06:30 Pick up rental car",
-              "06:30–07:15 Drive to Pachacamac",
-              "07:15–09:00 Pachacamac",
-              "09:00–10:00 Brunch: Hacienda Mamacona",
-              "10:00–12:45 Drive to Paracas",
-              "12:45–14:30 Paracas National Reserve quick loop",
-              "14:30–15:30 Late lunch: Pukasoncco",
-              "16:30–17:30 Hacienda San José (Chincha)",
-              "19:30–21:00 Dinner: La Lucha or Tanta"
-            ]
-          },
-          { id:"day-jan16", title:"JAN 16 — Lima → Cusco (Acclimatization)", meta:"Fly • Easy walking • Qorikancha",
-            items:[
-              "08:00–09:00 To airport, drop car",
-              "09:00–11:00 Flight Lima → Cusco",
-              "11:30–13:00 Check-in + lunch: Chakruna",
-              "13:00–15:00 Plaza de Armas + Cathedral",
-              "15:00–16:30 Qorikancha",
-              "17:00–18:30 Dinner: Jack’s Café"
-            ]
-          },
-          { id:"day-jan17", title:"JAN 17 — Machu Picchu Day (Option A or B)", meta:"Circuit 2 • no re-entry",
-            items:[
-              "Option A: Hiram Bingham (Poroy)",
-              "Option B: Vistadome (San Pedro)",
-              "No toilets inside MP; no re-entry; eat before entering."
-            ]
-          },
-          { id:"day-jan18", title:"JAN 18 — Cusco Day + Night Bus to Nazca", meta:"Sacsayhuamán • San Blas",
-            items:[
-              "10:00–12:00 Sacsayhuamán",
-              "12:15–13:00 Q’enqo",
-              "13:15–14:00 Lunch: Pachapapa or Green Point Vegan",
-              "19:30 Taxi to bus station",
-              "~20:00–05:30 Night bus Cusco → Nazca"
-            ]
-          },
-          { id:"day-jan19", title:"JAN 19 — Nazca Lines Flight + Desert", meta:"NZC • Cantalloc • Chauchilla",
-            items:[
-              "07:00–09:00 Nazca Lines Flight",
-              "10:30–12:00 Cantalloc Aqueducts",
-              "15:00–17:30 Chauchilla Cemetery + desert stop",
-              "Dinner: Mamashana"
-            ]
-          },
-          { id:"day-jan20", title:"JAN 20 — Nazca → Lima + Miraflores Sunset", meta:"Bus • Clifftop walk",
-            items:[
-              "07:30–14:00 Bus Nazca → Lima",
-              "16:00–18:30 Miraflores clifftop walk",
-              "19:30–21:30 Dinner: Panchita or Siete Sopas"
-            ]
-          },
-          { id:"day-jan21", title:"JAN 21 — Lima → Norfolk", meta:"Free morning • airport buffer",
-            items:[
-              "Free morning",
-              "T-3h taxi to airport",
-              "Fly Lima → US → Norfolk"
-            ]
-          }
-        ],
-        restaurants: [
-          { name:"La Lucha", city:"Lima", vibe:"Fast + cheap", why:"Reliable, quick.", price:"$", google:"La Lucha Sanguchería Miraflores" },
-          { name:"Tanta (Larcomar)", city:"Lima", vibe:"Comfort", why:"Safe default with views.", price:"$$", google:"Tanta Larcomar" },
-          { name:"Panchita", city:"Lima", vibe:"Traditional", why:"Great classics; crowded.", price:"$$", google:"Panchita Miraflores" },
-          { name:"Jack’s Café", city:"Cusco", vibe:"Value", why:"Big plates; consistent.", price:"$", google:"Jack's Cafe Cusco" },
-          { name:"Chakruna", city:"Cusco", vibe:"Quick", why:"Cheap when tired.", price:"$", google:"Chakruna Native Burgers Cusco" },
-          { name:"Pukasoncco", city:"Paracas", vibe:"Home-style", why:"Good prices.", price:"$", google:"Pukasoncco Arte y Restaurante Paracas" },
-          { name:"Mamashana", city:"Nazca", vibe:"All-day", why:"Traveler staple.", price:"$", google:"Mamashana Cafe Restaurante Nazca" }
-        ],
-        photoSpots: [
-          { name:"Parque del Amor (cliffs)", city:"Lima", best:"Sunset", shot:"Cliffs + silhouette", tip:"0.5x lens; keep horizon straight.", google:"Parque del Amor Miraflores" },
-          { name:"Playa Roja", city:"Paracas", best:"Midday contrast", shot:"Red sand curve + cliff", tip:"Expose for highlights; reds clip fast.", google:"Playa Roja Paracas" },
-          { name:"Sacsayhuamán", city:"Cusco", best:"Morning", shot:"Stone scale wide", tip:"Low angle exaggerates blocks.", google:"Sacsayhuaman" },
-          { name:"Cantalloc Aqueducts", city:"Nazca", best:"Late morning", shot:"Spiral geometry", tip:"Shoot symmetry from above.", google:"Acueductos de Cantalloc" }
-        ],
-        budget: null
+        key: "2026-01-15",
+        title: "JAN 15 — Arrival → Coastal Loop → Lima",
+        tags: ["Lima", "Pachacamac", "Paracas", "Chincha"],
+        locations: ["Lima", "Pachacamac", "Paracas", "Chincha"],
+        timeline: [
+          "05:00–06:00  Land in Lima, immigration, bags",
+          "06:00–06:30  Pick up rental car",
+          "06:30–07:15  Drive to Pachacamac",
+          "07:15–09:00  Pachacamac",
+          "09:00–10:00  Brunch: Hacienda Mamacona",
+          "10:00–12:45  Drive to Paracas",
+          "12:45–14:30  Paracas National Reserve quick loop",
+          "14:30–15:30  Late lunch: Pukasoncco",
+          "16:30–17:30  Hacienda San José (Chincha)",
+          "19:30–21:00  Dinner: La Lucha or Tanta"
+        ]
       },
-
-      // -------------------------
-      // TRIP 2: YUCATÁN / MEXICO (integrated)
-      // NOTE: If you want perfect POI placement, add lat/lng later.
-      // -------------------------
       {
-        id: "yucatan-8d",
-        name: "Yucatán (8 Days) · Base Playa del Carmen",
-        short: "Playa del Carmen base → Tulum → Cozumel → Cobá → Cenotes → Isla Mujeres / Akumal",
-        googleMapUrl: "#", // You can add your Google map link here later
-        heroTitle: "Yucatán, Designed Like a Product.",
-        heroSub: "8-day command-center plan based in Playa del Carmen: ruins, cenotes, beach, Cozumel, and a birthday day built in.",
-        meta: ["Base: Playa del Carmen", "Ruins + cenotes + islands", "Birthday day included", "Mid-price food picks"],
-        mapView: { center: [20.6296, -87.0739], zoom: 9 },
-        categories: [
-          { key: "logistics", label: "Logistics" },
-          { key: "attraction", label: "Attractions" },
-          { key: "food", label: "Food" },
-          { key: "photo", label: "Photo" }
-        ],
-        pois: [
-          // Base / logistics
-          { id:"reef28", name:"The Reef 28 Hotel", city:"Playa del Carmen", cat:"logistics", lat:20.6299, lng:-87.0722, note:"Main base hotel.", planAnchor:"#mex-day1", googleQuery:"The Reef 28 Playa del Carmen" },
-          { id:"quinta", name:"Quinta Avenida", city:"Playa del Carmen", cat:"attraction", lat:20.6294, lng:-87.0718, note:"Walk, shops, night energy.", planAnchor:"#mex-day1", googleQuery:"Quinta Avenida Playa del Carmen" },
+        key: "2026-01-16",
+        title: "JAN 16 — Lima → Cusco (Acclimatization)",
+        tags: ["Fly", "Easy walking", "Qorikancha"],
+        locations: ["Lima", "Cusco"],
+        timeline: [
+          "08:00–09:00  To airport, drop car",
+          "09:00–11:00  Flight Lima → Cusco",
+          "11:30–13:00  Check-in + light lunch (Chakruna Native Burgers)",
+          "13:00–15:00  Plaza de Armas walk + coffee",
+          "15:00–16:30  Qorikancha",
+          "17:00–18:30  Early dinner: Jack’s Café"
+        ]
+      },
+      {
+        key: "2026-01-17",
+        title: "JAN 17 — Machu Picchu Day",
+        tags: ["Circuit 2", "No re-entry", "Train day"],
+        locations: ["Cusco", "Aguas Calientes", "Machu Picchu"],
+        timeline: [
+          "Option A: Belmond Hiram Bingham (Luxury) OR Option B: Vistadome (Mid-range)",
+          "Plan timing: Train → Bus → Circuit 2 → Dinner → Train back"
+        ]
+      },
+      {
+        key: "2026-01-18",
+        title: "JAN 18 — Full Cusco + Night Bus to Nazca",
+        tags: ["Sacsayhuamán", "San Blas", "Night bus"],
+        locations: ["Cusco", "Nazca"],
+        timeline: [
+          "10:00–12:00  Sacsayhuamán",
+          "12:15–13:00  Q’enqo",
+          "13:15–14:00  Lunch: Pachapapa / Green Point Vegan",
+          "14:00–15:00  San Blas streets & shops",
+          "16:45–18:00  Cathedral + Plaza de Armas",
+          "20:00–05:30  Night bus: Cusco → Nazca (Cruz del Sur)"
+        ]
+      },
+      {
+        key: "2026-01-19",
+        title: "JAN 19 — Nazca Lines Flight + Desert",
+        tags: ["Flight", "Cantalloc", "Chauchilla"],
+        locations: ["Nazca"],
+        timeline: [
+          "07:00–09:00  Nazca Lines flight",
+          "09:00–10:00  Breakfast: Mamashana",
+          "10:30–12:00  Cantalloc Aqueducts",
+          "15:00–17:30  Chauchilla Cemetery + desert sunset",
+          "19:00–20:30  Dinner: Mamashana / La Kasa Rustika"
+        ]
+      },
+      {
+        key: "2026-01-20",
+        title: "JAN 20 — Nazca → Lima + Miraflores",
+        tags: ["Bus", "Cliff walk", "Dinner"],
+        locations: ["Nazca", "Lima", "Miraflores", "Barranco"],
+        timeline: [
+          "07:30–14:00  Bus: Nazca → Lima (Cruz del Sur)",
+          "16:00–18:30  Miraflores clifftop walk",
+          "19:30–21:30  Dinner: Panchita / Siete Sopas"
+        ]
+      }
+    ],
+    restaurants: [
+      // Lima
+      { name:"La Lucha Sanguchería", area:"Lima · Miraflores", price:"cheap-mid", why:"fast + reliable", map:"https://www.google.com/maps/search/?api=1&query=La%20Lucha%20Sangucher%C3%ADa%20Miraflores" },
+      { name:"Tanta (Larcomar)", area:"Lima · Larcomar", price:"mid", why:"comfort Peruvian + view", map:"https://www.google.com/maps/search/?api=1&query=Tanta%20Larcomar" },
+      { name:"Panchita", area:"Lima · Miraflores", price:"mid", why:"classic Peruvian", map:"https://www.google.com/maps/search/?api=1&query=Panchita%20Miraflores" },
+      { name:"Siete Sopas", area:"Lima", price:"cheap", why:"famous soups", map:"https://www.google.com/maps/search/?api=1&query=Siete%20Sopas%20Lima" },
 
-          // Food (key mentions)
-          { id:"lapperla", name:"La Perla Pixan (Cuisine & Mezcal)", city:"Playa del Carmen", cat:"food", lat:20.6278, lng:-87.0736, note:"Dinner option day 1.", planAnchor:"#mex-day1", googleQuery:"La Perla Pixan Playa del Carmen" },
-          { id:"elfogon", name:"El Fogón", city:"Playa del Carmen", cat:"food", lat:20.6324, lng:-87.0735, note:"Strong taco pick.", planAnchor:"#mex-day2", googleQuery:"El Fogon Playa del Carmen" },
+      // Pachacamac / Paracas / Chincha
+      { name:"Hacienda Mamacona", area:"Pachacamac", price:"mid", why:"traditional + horses vibe", map:"https://www.google.com/maps/search/?api=1&query=Hacienda%20Mamacona" },
+      { name:"Pukasoncco Arte y Restaurante", area:"Paracas", price:"cheap-mid", why:"home-style + veg options", map:"https://www.google.com/maps/search/?api=1&query=Pukasoncco%20Paracas" },
 
-          // Tulum day
-          { id:"tulumruins", name:"Tulum Archaeological Zone", city:"Tulum", cat:"attraction", lat:20.2149, lng:-87.4290, note:"Cliffside ruins + sea views.", planAnchor:"#mex-day2", googleQuery:"Tulum Archaeological Zone" },
-          { id:"playaparaiso", name:"Playa Paraíso", city:"Tulum", cat:"photo", lat:20.2043, lng:-87.4413, note:"Turquoise beach; midday color.", planAnchor:"#mex-day2", googleQuery:"Playa Paraiso Tulum" },
-          { id:"grancenote", name:"Gran Cenote", city:"Tulum", cat:"attraction", lat:20.3017, lng:-87.4818, note:"Swim option; go early.", planAnchor:"#mex-day2", googleQuery:"Gran Cenote" },
-          { id:"rawlove", name:"Raw Love", city:"Tulum", cat:"food", lat:20.1525, lng:-87.4514, note:"Lunch option (Tulum).", planAnchor:"#mex-day2", googleQuery:"Raw Love Tulum" },
-          { id:"arca", name:"ARCA", city:"Tulum", cat:"food", lat:20.1468, lng:-87.4540, note:"Birthday dinner (sunset / night).", planAnchor:"#mex-day3", googleQuery:"ARCA Tulum" },
+      // Cusco
+      { name:"Chakruna Native Burgers", area:"Cusco · Center", price:"cheap", why:"highly rated + easy", map:"https://www.google.com/maps/search/?api=1&query=Chakruna%20Native%20Burgers%20Cusco" },
+      { name:"Jack’s Café", area:"Cusco · Center", price:"cheap-mid", why:"big portions", map:"https://www.google.com/maps/search/?api=1&query=Jack%27s%20Cafe%20Cusco" },
+      { name:"Pachapapa", area:"Cusco · San Blas", price:"mid", why:"courtyard classic", map:"https://www.google.com/maps/search/?api=1&query=Pachapapa%20Cusco" },
+      { name:"Green Point Vegan", area:"Cusco", price:"cheap-mid", why:"popular plant-based", map:"https://www.google.com/maps/search/?api=1&query=Green%20Point%20Vegan%20Cusco" },
 
-          // Cozumel day
-          { id:"coz-ferry", name:"Ferry Playa del Carmen ↔ Cozumel", city:"Playa del Carmen", cat:"logistics", lat:20.6256, lng:-87.0771, note:"Morning ferry recommended.", planAnchor:"#mex-day4", googleQuery:"Cozumel ferry Playa del Carmen" },
-          { id:"puntasur", name:"Punta Sur Eco Beach Park", city:"Cozumel", cat:"attraction", lat:20.2520, lng:-86.9770, note:"Nature park stop.", planAnchor:"#mex-day4", googleQuery:"Punta Sur Eco Beach Park" },
-          { id:"palancar", name:"Palancar Reef", city:"Cozumel", cat:"attraction", lat:20.3000, lng:-87.0400, note:"Snorkel / reef.", planAnchor:"#mex-day4", googleQuery:"Palancar Reef" },
+      // Nazca
+      { name:"Mamashana Café Restaurante", area:"Nazca", price:"mid", why:"best all-round pick", map:"https://www.google.com/maps/search/?api=1&query=Mamashana%20Nazca" },
+      { name:"Restaurante La Encantada", area:"Nazca", price:"mid", why:"seafood + grill", map:"https://www.google.com/maps/search/?api=1&query=Restaurante%20La%20Encantada%20Nazca" },
+      { name:"El Portón", area:"Nazca", price:"mid", why:"regional value", map:"https://www.google.com/maps/search/?api=1&query=El%20Port%C3%B3n%20Nazca" }
+    ],
+    budget: {
+      range: "Jan 15–20",
+      rate: "$1 = S/ 3.29",
+      totalUSD: 1827,
+      totalPEN: 6006,
+      split: [
+        { label:"Spent in Soles", primary:"S/ 3,442", secondary:"≈ $1,047" },
+        { label:"Spent in USD", primary:"$780", secondary:"" }
+      ],
+      notes: [
+        "Currency exchange “$300 → S/986” is not counted as spend.",
+        "“Sushi” amount was not provided, so it’s excluded."
+      ],
+      days: [
+        { day:"Jan 15", usd:319, pen:1049, key:"2026-01-15" },
+        { day:"Jan 16", usd:77, pen:252, key:"2026-01-16" },
+        { day:"Jan 17", usd:736, pen:2418, key:"2026-01-17" },
+        { day:"Jan 18", usd:202, pen:664, key:"2026-01-18" },
+        { day:"Jan 19", usd:161, pen:529, key:"2026-01-19" },
+        { day:"Jan 20", usd:333, pen:1093, key:"2026-01-20" }
+      ]
+    }
+  },
 
-          // Coba + cenotes
-          { id:"coba", name:"Cobá Ruins", city:"Cobá", cat:"attraction", lat:20.4901, lng:-87.7327, note:"Jungle ruins day.", planAnchor:"#mex-day5", googleQuery:"Coba Ruins" },
-          { id:"chooha", name:"Cenote Choo-Ha", city:"Cobá", cat:"attraction", lat:20.4912, lng:-87.7407, note:"Cenote option near Cobá.", planAnchor:"#mex-day5", googleQuery:"Cenote Choo-Ha" },
-          { id:"multumha", name:"Cenote Multum-Ha", city:"Cobá", cat:"attraction", lat:20.4856, lng:-87.7398, note:"Cenote option near Cobá.", planAnchor:"#mex-day5", googleQuery:"Cenote Multum Ha" },
-          { id:"donsirloin", name:"Don Sirloin", city:"Playa del Carmen", cat:"food", lat:20.6290, lng:-87.0705, note:"Dinner option.", planAnchor:"#mex-day5", googleQuery:"Don Sirloin Playa del Carmen" },
+  mexico: {
+    id:"mexico",
+    name:"Yucatán Trip (Mexico)",
+    routeLine:"Playa del Carmen → Mayan sites → Beach → Food",
+    heroTitle:"Mexico, organized like a mission.",
+    heroSub:"Your Yucatán plan lives here. Add more trips without breaking layout.",
+    pills:["Multi-trip navigation","Mobile-first","Restaurants + photo spots"],
+    googleMapUrl:"https://mexicosup.tiiny.site/?utm_source=ig&utm_medium=social&utm_content=link_in_bio",
+    days: [
+      { key:"mx-1", title:"Yucatán — Day 1", tags:["placeholder"], locations:["Playa del Carmen"], timeline:["Add your Mexico plan details here."] }
+    ],
+    restaurants: [],
+    budget: null
+  }
+};
 
-          // Choice days
-          { id:"islamuj", name:"Isla Mujeres", city:"Isla Mujeres", cat:"photo", lat:21.2320, lng:-86.7310, note:"Option day; beaches + photos.", planAnchor:"#mex-day6", googleQuery:"Isla Mujeres" },
-          { id:"akumal", name:"Akumal Beach (turtles)", city:"Akumal", cat:"attraction", lat:20.3952, lng:-87.3150, note:"Option day; turtle snorkeling.", planAnchor:"#mex-day6", googleQuery:"Akumal Beach turtles" },
+/* =========================
+   APP STATE
+========================= */
+let currentTripId = "peru";
 
-          // Xcaret option
-          { id:"xcaret", name:"Xcaret Park", city:"Near Playa del Carmen", cat:"attraction", lat:20.5806, lng:-87.1166, note:"Option day; big park day.", planAnchor:"#mex-day7", googleQuery:"Xcaret Park" },
-        ],
-        itinerary: [
-          { id:"mex-day1", title:"Day 1 — Arrival + Relaxation", meta:"Check-in • Rooftop • Quinta Avenida",
-            items:[
-              "Check-in: The Reef 28 Hotel",
-              "Rooftop pool + decompress",
-              "Walk Quinta Avenida (evening)",
-              "Dinner: La Perla Pixan (Cuisine & Mezcal)"
-            ]
-          },
-          { id:"mex-day2", title:"Day 2 — Tulum Ruins + Beach / Cenote", meta:"Tulum • Playa Paraíso • Gran Cenote",
-            items:[
-              "Tulum Archaeological Zone",
-              "Swim: Playa Paraíso OR Gran Cenote",
-              "Lunch: Raw Love (Tulum)",
-              "Dinner: El Fogón"
-            ]
-          },
-          { id:"mex-day3", title:"Day 3 — Birthday Day (Special Occasion)", meta:"Yoga • Beach • ARCA dinner",
-            items:[
-              "Private yoga on Tulum Beach",
-              "Optional: Tulum ruins (if you want repeat/short visit)",
-              "Sunset + birthday dinner: ARCA Tulum"
-            ]
-          },
-          { id:"mex-day4", title:"Day 4 — Cozumel Adventure", meta:"Ferry • Punta Sur • Palancar Reef",
-            items:[
-              "Ferry Playa del Carmen → Cozumel",
-              "Punta Sur Eco Park",
-              "Snorkeling: Palancar Reef"
-            ]
-          },
-          { id:"mex-day5", title:"Day 5 — Cobá + Cenotes", meta:"Cobá • Choo-Ha • Multum-Ha",
-            items:[
-              "Cobá Ruins (jungle site)",
-              "Cenotes: Choo-Ha + Multum-Ha",
-              "Dinner: Don Sirloin"
-            ]
-          },
-          { id:"mex-day6", title:"Day 6 — Choice Day", meta:"Isla Mujeres OR Akumal",
-            items:[
-              "Option A: Isla Mujeres (ferry + beach)",
-              "Option B: Akumal (turtles + cenotes)"
-            ]
-          },
-          { id:"mex-day7", title:"Day 7 — Free Day / Xcaret", meta:"Chill OR full park day",
-            items:[
-              "Option A: Chill day (Playa del Carmen)",
-              "Option B: Xcaret Park"
-            ]
-          },
-          { id:"mex-day8", title:"Day 8 — Departure", meta:"Relax • depart",
-            items:[
-              "Easy morning",
-              "Departure logistics"
-            ]
+/* =========================
+   DOM
+========================= */
+const topbar = document.getElementById("topbar");
+const tripSelect = document.getElementById("tripSelect");
+const routeLine = document.getElementById("routeLine");
+const heroTitle = document.getElementById("heroTitle");
+const heroSub = document.getElementById("heroSub");
+const heroPills = document.getElementById("heroPills");
+
+const openGoogleMapTop = document.getElementById("openGoogleMapTop");
+const openGoogleMapHero = document.getElementById("openGoogleMapHero");
+const footerGoogleMap = document.getElementById("footerGoogleMap");
+const footerShare = document.getElementById("footerShare");
+
+const viewPlan = document.getElementById("view-plan");
+const viewMap = document.getElementById("view-map");
+const viewFood = document.getElementById("view-food");
+const viewBudget = document.getElementById("view-budget");
+
+const goPlan = document.getElementById("goPlan");
+const goMap = document.getElementById("goMap");
+
+const drawerBackdrop = document.getElementById("drawerBackdrop");
+const drawerTitle = document.getElementById("drawerTitle");
+const drawerSub = document.getElementById("drawerSub");
+const drawerBody = document.getElementById("drawerBody");
+const drawerClose = document.getElementById("drawerClose");
+
+function moneyUSD(n){ return "$" + n.toLocaleString("en-US"); }
+function moneyPEN(n){ return "S/ " + n.toLocaleString("en-US"); }
+
+/* =========================
+   NAV (Header + Bottom)
+========================= */
+function setView(name){
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("is-active"));
+  document.getElementById(`view-${name}`).classList.add("is-active");
+
+  document.querySelectorAll(".navBtn").forEach(b=>b.classList.toggle("is-active", b.dataset.view===name));
+  document.querySelectorAll(".navItem").forEach(b=>b.classList.toggle("is-active", b.dataset.view===name));
+
+  // reduce cognitive load: keep primary CTA aligned with view
+  // (Same link, but this is where you’d swap CTA labels if needed)
+}
+
+document.querySelectorAll(".navBtn").forEach(b=>b.addEventListener("click", ()=>setView(b.dataset.view)));
+document.querySelectorAll(".navItem").forEach(b=>b.addEventListener("click", ()=>setView(b.dataset.view)));
+
+goPlan.addEventListener("click", ()=>setView("plan"));
+goMap.addEventListener("click", ()=>setView("map"));
+
+/* Sticky header hides on scroll down (desktop/tablet) */
+let lastY = 0;
+window.addEventListener("scroll", ()=>{
+  const y = window.scrollY || 0;
+  const goingDown = y > lastY && y > 60;
+  if(window.innerWidth >= 980){
+    topbar.classList.toggle("is-hidden", goingDown);
+  } else {
+    topbar.classList.remove("is-hidden");
+  }
+  lastY = y;
+});
+
+/* =========================
+   DRAWER
+========================= */
+function openDrawer({title, sub, items}){
+  drawerTitle.textContent = title;
+  drawerSub.textContent = sub || "";
+  drawerBody.innerHTML = items.map(r => `
+    <div class="restItem">
+      <div>
+        <strong>${r.name}</strong>
+        <small>${r.area} · ${r.price}${r.why ? " · " + r.why : ""}</small>
+      </div>
+      <a href="${r.map}" target="_blank" rel="noopener">Open</a>
+    </div>
+  `).join("") || `<div style="color:rgba(255,255,255,.7);padding:8px 0">No restaurant matches for this day yet.</div>`;
+  drawerBackdrop.classList.add("is-open");
+}
+function closeDrawer(){
+  drawerBackdrop.classList.remove("is-open");
+}
+drawerClose.addEventListener("click", closeDrawer);
+drawerBackdrop.addEventListener("click", (e)=>{ if(e.target===drawerBackdrop) closeDrawer(); });
+
+/* =========================
+   RENDER
+========================= */
+function renderTripSelect(){
+  tripSelect.innerHTML = Object.values(TRIPS).map(t => `
+    <option value="${t.id}" ${t.id===currentTripId?"selected":""}>${t.name}</option>
+  `).join("");
+  tripSelect.addEventListener("change", ()=>{
+    currentTripId = tripSelect.value;
+    renderAll();
+    window.scrollTo({top:0, behavior:"smooth"});
+  });
+}
+
+function renderHero(trip){
+  routeLine.textContent = trip.routeLine || "";
+  heroTitle.textContent = trip.heroTitle || trip.name;
+  heroSub.textContent = trip.heroSub || "";
+  heroPills.innerHTML = (trip.pills || []).map(p=>`<span class="pill">${p}</span>`).join("");
+
+  [openGoogleMapTop, openGoogleMapHero, footerGoogleMap].forEach(a=>{
+    a.href = trip.googleMapUrl || "#";
+  });
+
+  footerShare.addEventListener("click", (e)=>{
+    e.preventDefault();
+    navigator.clipboard?.writeText(location.href).then(()=>alert("Link copied"));
+  });
+}
+
+function renderPlan(trip){
+  const header = `
+    <div class="section">
+      <div class="sectionHeader">
+        <div>
+          <h2>Trip Plan</h2>
+          <p>Tap a day → see timeline. Restaurants open as a drawer.</p>
+        </div>
+        <button class="btn small" id="planJumpTop">Top</button>
+      </div>
+      <div class="sectionBody" id="planBody"></div>
+    </div>
+  `;
+  viewPlan.innerHTML = header;
+
+  document.getElementById("planJumpTop").addEventListener("click", ()=>window.scrollTo({top:0, behavior:"smooth"}));
+
+  const planBody = document.getElementById("planBody");
+  planBody.innerHTML = trip.days.map(d => `
+    <article class="dayCard" data-itinerary-day="${d.key}">
+      <div class="dayTop">
+        <h3 class="dayTitle">${d.title}</h3>
+        <div class="dayTags">${(d.tags||[]).slice(0,5).map(t=>`<span class="tag">${t}</span>`).join("")}</div>
+      </div>
+
+      <ul class="timeline">
+        ${(d.timeline||[]).map(item=>{
+          const parts = item.split("  ");
+          if(parts.length >= 2){
+            return `<li><span>${parts[0]}</span> ${parts.slice(1).join("  ")}</li>`;
           }
-        ],
-        restaurants: [
-          { name:"La Perla Pixan", city:"Playa del Carmen", vibe:"Dinner + mezcal", why:"Strong first-night anchor.", price:"$$", google:"La Perla Pixan Playa del Carmen" },
-          { name:"El Fogón", city:"Playa del Carmen", vibe:"Tacos", why:"Reliable value pick.", price:"$", google:"El Fogon Playa del Carmen" },
-          { name:"Raw Love", city:"Tulum", vibe:"Light lunch", why:"Easy day fuel near beach.", price:"$$", google:"Raw Love Tulum" },
-          { name:"ARCA", city:"Tulum", vibe:"Birthday dinner", why:"Atmosphere + high-impact night.", price:"$$$", google:"ARCA Tulum" },
-          { name:"Don Sirloin", city:"Playa del Carmen", vibe:"Quick dinner", why:"Good post-excursion meal.", price:"$", google:"Don Sirloin Playa del Carmen" }
-        ],
-        photoSpots: [
-          { name:"Playa Paraíso", city:"Tulum", best:"Midday (water color)", shot:"Turquoise shoreline wides + minimal clutter", tip:"Shoot perpendicular to shore for cleaner background.", google:"Playa Paraiso Tulum" },
-          { name:"Tulum Ruins (cliff edge)", city:"Tulum", best:"Early morning", shot:"Ruins + sea horizon", tip:"Go early to reduce crowds in frame.", google:"Tulum Archaeological Zone" },
-          { name:"Gran Cenote", city:"Tulum", best:"Late morning", shot:"Water reflections + cave openings", tip:"Underexpose slightly to keep highlights.", google:"Gran Cenote" },
-          { name:"Isla Mujeres waterfront", city:"Isla Mujeres", best:"Sunset", shot:"Harbor silhouettes", tip:"Lock exposure on sky; let subjects go dark.", google:"Isla Mujeres" },
-          { name:"ARCA (night)", city:"Tulum", best:"After dark", shot:"Candle/fire vibe", tip:"Use night mode; keep hands steady.", google:"ARCA Tulum" }
-        ],
-        budget: {
-          headline: "Estimated per-person total: $836",
-          items: [
-            { label:"Meals", value:"$350" },
-            { label:"Transportation", value:"$25" },
-            { label:"Activities", value:"$377" },
-            { label:"eSIM", value:"$34" },
-            { label:"Misc", value:"$50" }
-          ]
-        }
-      }
-    ];
+          return `<li>${item}</li>`;
+        }).join("")}
+      </ul>
 
-    // =========================================================
-    // HELPERS
-    // =========================================================
-    const $ = (id) => document.getElementById(id);
+      <div class="dayActions">
+        <button class="btn primary" data-day="${d.key}">Restaurants for this day</button>
+        <a class="btn" href="${trip.googleMapUrl}" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center;">Open map</a>
+      </div>
+    </article>
+  `).join("");
 
-    function escapeHtml(str){
-      return String(str).replace(/[&<>"']/g, s => ({
-        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-      }[s]));
-    }
-
-    function makeGoogleLink(query){
-      const q = encodeURIComponent(query);
-      return `https://www.google.com/maps/search/?api=1&query=${q}`;
-    }
-
-    // =========================================================
-    // MAP
-    // =========================================================
-    let map, tileLayer, markerLayer = [];
-    let activeTrip = trips[0];
-    let activeFilters = new Set(); // empty = show all
-    let labelsEnabled = true;
-
-    function markerIcon(color){
-      const svg = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 34 34">
-          <defs>
-            <filter id="s" x="-50%" y="-50%" width="200%" height="200%">
-              <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="rgba(0,0,0,.55)"/>
-            </filter>
-          </defs>
-          <g filter="url(#s)">
-            <path d="M17 2c6 0 10 4.1 10 10.2 0 7.5-8.4 17.6-10 19.5-1.6-1.9-10-12-10-19.5C7 6.1 11 2 17 2z" fill="${color}" />
-            <circle cx="17" cy="12.4" r="4.2" fill="rgba(11,13,16,.95)" />
-          </g>
-        </svg>`;
-      return L.divIcon({
-        className: "",
-        html: svg,
-        iconSize: [34,34],
-        iconAnchor: [17,32]
+  // Bind restaurant drawer
+  planBody.querySelectorAll("button[data-day]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const dayKey = btn.dataset.day;
+      const day = trip.days.find(x=>x.key===dayKey);
+      const locs = (day.locations||[]).map(s=>s.toLowerCase());
+      const matches = (trip.restaurants||[]).filter(r=>{
+        const hay = (r.area + " " + r.name).toLowerCase();
+        return locs.some(l => hay.includes(l));
       });
-    }
-
-    function colorByCat(cat){
-      switch(cat){
-        case "logistics": return "rgba(184,199,255,.92)";
-        case "attraction": return "rgba(255,255,255,.88)";
-        case "food": return "rgba(210,255,210,.80)";
-        case "photo": return "rgba(255,220,180,.82)";
-        default: return "rgba(255,255,255,.85)";
-      }
-    }
-
-    function initMap(){
-      map = L.map("map", { zoomControl: true, attributionControl: false });
-
-      // Modern-looking tiles (not default Google embed)
-      tileLayer = L.tileLayer(
-        "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-        { subdomains: "abcd", maxZoom: 19 }
-      ).addTo(map);
-
-      setTrip(activeTrip);
-    }
-
-    function clearMarkers(){
-      markerLayer.forEach(m => map.removeLayer(m));
-      markerLayer = [];
-    }
-
-    function passesFilter(poi){
-      if(activeFilters.size === 0) return true;
-      return activeFilters.has(poi.cat);
-    }
-
-    function addMarkers(){
-      clearMarkers();
-      const bounds = [];
-
-      for(const poi of activeTrip.pois || []){
-        if(typeof poi.lat !== "number" || typeof poi.lng !== "number") continue;
-        if(!passesFilter(poi)) continue;
-
-        const m = L.marker([poi.lat, poi.lng], { icon: markerIcon(colorByCat(poi.cat)) });
-
-        if(labelsEnabled){
-          m.bindTooltip(escapeHtml(poi.name), { direction:"top", offset:[0,-18], opacity:0.95 });
-        }
-
-        m.on("click", () => openPinPreview(poi));
-        m.addTo(map);
-        markerLayer.push(m);
-        bounds.push([poi.lat, poi.lng]);
-      }
-
-      if(bounds.length){
-        map.fitBounds(bounds, { padding:[40,40] });
-      }else{
-        map.setView(activeTrip.mapView.center, activeTrip.mapView.zoom);
-      }
-    }
-
-    // =========================================================
-    // DRAWER / PREVIEW
-    // =========================================================
-    function showDrawer(show){
-      const d = $("drawer");
-      if(show) d.classList.add("show");
-      else d.classList.remove("show");
-    }
-
-    function labelForCat(cat){
-      const found = (activeTrip.categories || []).find(c => c.key === cat);
-      return found ? found.label : cat;
-    }
-
-    function openPinPreview(poi){
-      showDrawer(true);
-
-      $("drawerTitle").textContent = poi.name;
-      $("drawerSubtitle").textContent = `${poi.city || "—"} · ${labelForCat(poi.cat)}`;
-      $("drawerHint").textContent = poi.note || "Open full plan to jump to the relevant day.";
-
-      const list = $("poiList");
-      const gm = poi.googleQuery || poi.name;
-      const openGoogle = activeTrip.googleMapUrl && activeTrip.googleMapUrl !== "#"
-        ? activeTrip.googleMapUrl
-        : makeGoogleLink(gm);
-
-      list.innerHTML = `
-        <div class="poiItem" style="cursor:default">
-          <strong>${escapeHtml(poi.name)}</strong>
-          <span>${escapeHtml(poi.note || "")}</span>
-          <div class="anchorNote">
-            <a class="btn btnPrimary" href="${poi.planAnchor || "#itinerary"}">Open full plan</a>
-            <a class="btn" href="${makeGoogleLink(gm)}" target="_blank" rel="noopener">Open in Maps</a>
-          </div>
-        </div>
-        <p class="hint">Search other pins above or change filters.</p>
-      `;
-
-      if(typeof poi.lat === "number" && typeof poi.lng === "number"){
-        map.panTo([poi.lat, poi.lng], { animate:true, duration: 0.5 });
-      }
-
-      // Keep the "Open Google Map" button meaningful even if user hasn’t provided a MyMap link yet
-      $("drawerOpenGoogleBtn").href = openGoogle;
-    }
-
-    function renderPoiList(filterText=""){
-      const list = $("poiList");
-      const q = filterText.trim().toLowerCase();
-
-      const rows = (activeTrip.pois || [])
-        .filter(p => passesFilter(p))
-        .filter(p => {
-          if(!q) return true;
-          return (p.name + " " + (p.city||"") + " " + (p.note||"") + " " + (p.cat||""))
-            .toLowerCase()
-            .includes(q);
-        })
-        .slice(0, 120)
-        .map(p => `
-          <div class="poiItem" data-poi="${escapeHtml(p.id)}">
-            <strong>${escapeHtml(p.name)}</strong>
-            <span>${escapeHtml((p.city||"") + " · " + labelForCat(p.cat))}</span>
-          </div>
-        `)
-        .join("");
-
-      list.innerHTML = rows || `<p class="hint">No pins match. Clear search or change filters.</p>`;
-
-      list.querySelectorAll(".poiItem[data-poi]").forEach(el => {
-        el.addEventListener("click", () => {
-          const id = el.getAttribute("data-poi");
-          const poi = (activeTrip.pois || []).find(p => p.id === id);
-          if(poi) openPinPreview(poi);
-        });
+      openDrawer({
+        title: "Restaurants",
+        sub: `${day.title} · based on locations: ${(day.locations||[]).join(", ")}`,
+        items: matches
       });
-    }
-
-    // =========================================================
-    // FILTER CHIPS
-    // =========================================================
-    function renderFilterChips(){
-      const chips = $("filterChips");
-      chips.innerHTML = "";
-
-      const allChip = document.createElement("div");
-      allChip.className = "chip" + (activeFilters.size===0 ? " active": "");
-      allChip.textContent = "All";
-      allChip.addEventListener("click", () => {
-        activeFilters.clear();
-        renderFilterChips();
-        addMarkers();
-        renderPoiList($("searchInput").value);
-      });
-      chips.appendChild(allChip);
-
-      for(const c of (activeTrip.categories || [])){
-        const chip = document.createElement("div");
-        const active = activeFilters.has(c.key);
-        chip.className = "chip" + (active ? " active": "");
-        chip.textContent = c.label;
-        chip.addEventListener("click", () => {
-          if(activeFilters.has(c.key)) activeFilters.delete(c.key);
-          else activeFilters.add(c.key);
-
-          const allKeys = new Set((activeTrip.categories || []).map(x => x.key));
-          let allSelected = true;
-          for(const k of allKeys) if(!activeFilters.has(k)) allSelected = false;
-          if(allSelected) activeFilters.clear();
-
-          renderFilterChips();
-          addMarkers();
-          renderPoiList($("searchInput").value);
-        });
-        chips.appendChild(chip);
-      }
-    }
-
-    // =========================================================
-    // TRIP TABS INSIDE MAP
-    // =========================================================
-    function renderTripTabs(){
-      const box = $("tripTabs");
-      box.innerHTML = "";
-
-      trips.forEach(t => {
-        const tab = document.createElement("div");
-        tab.className = "chip" + (t.id === activeTrip.id ? " active" : "");
-        tab.textContent = t.name.split("·")[0].trim(); // short label
-        tab.title = t.name;
-        tab.addEventListener("click", () => setTrip(t));
-        box.appendChild(tab);
-      });
-    }
-
-    // =========================================================
-    // CONTENT RENDERERS
-    // =========================================================
-    function renderItinerary(){
-      const c = $("itineraryContainer");
-      const days = activeTrip.itinerary || [];
-      if(days.length === 0){
-        c.innerHTML = `<p style="color: var(--muted); margin: 0; padding: 8px">No itinerary loaded for this trip yet.</p>`;
-        return;
-      }
-
-      c.innerHTML = days.map((d, idx) => {
-        const open = idx === 0 ? "open" : "";
-        const items = (d.items || []).map(x => `<li>${escapeHtml(x)}</li>`).join("");
-        const gmap = (activeTrip.googleMapUrl && activeTrip.googleMapUrl !== "#")
-          ? activeTrip.googleMapUrl
-          : "#mapSection";
-        return `
-          <details ${open} id="${escapeHtml(d.id)}">
-            <summary>
-              <span>${escapeHtml(d.title)}</span>
-              <span class="sumMeta">${escapeHtml(d.meta || "")}</span>
-            </summary>
-            <div class="detailsBody">
-              <ul>${items}</ul>
-              <div class="anchorNote">
-                <a class="btn btnPrimary" href="#mapSection">Use map for this day</a>
-                <a class="btn" href="${gmap}" target="${gmap.startsWith("http") ? "_blank" : "_self"}" rel="noopener">Open Google Map</a>
-              </div>
-            </div>
-          </details>
-        `;
-      }).join("");
-    }
-
-    function renderRestaurants(){
-      const el = $("restaurantCards");
-      const rs = activeTrip.restaurants || [];
-      if(rs.length === 0){
-        el.innerHTML = `<div class="rcard"><h4>No restaurant data</h4><p>Add restaurants in the trip object.</p></div>`;
-        return;
-      }
-
-      el.innerHTML = rs.map(r => `
-        <div class="rcard">
-          <h4>${escapeHtml(r.name)} <span style="color:var(--muted); font-weight:700; font-size:12px">· ${escapeHtml(r.city || "")}</span></h4>
-          <p>${escapeHtml(r.why || "")}</p>
-          <div class="chipsRow">
-            <span class="tag">${escapeHtml(r.vibe || "Recommended")}</span>
-            <span class="tag">${escapeHtml(r.price || "$$")}</span>
-            <a class="tag" href="${makeGoogleLink(r.google || r.name)}" target="_blank" rel="noopener">Open in Maps</a>
-          </div>
-        </div>
-      `).join("");
-    }
-
-    function renderPhotos(){
-      const el = $("photoCards");
-      const ps = activeTrip.photoSpots || [];
-      if(ps.length === 0){
-        el.innerHTML = `<div class="rcard"><h4>No photo spots</h4><p>Add photo spots in the trip object.</p></div>`;
-        return;
-      }
-
-      el.innerHTML = ps.map(p => `
-        <div class="rcard">
-          <h4>${escapeHtml(p.name)} <span style="color:var(--muted); font-weight:700; font-size:12px">· ${escapeHtml(p.city || "")}</span></h4>
-          <p><strong style="color:var(--text)">Best:</strong> ${escapeHtml(p.best || "")}</p>
-          <p style="margin-top:6px"><strong style="color:var(--text)">Shot:</strong> ${escapeHtml(p.shot || "")}</p>
-          <p style="margin-top:6px"><strong style="color:var(--text)">Tip:</strong> ${escapeHtml(p.tip || "")}</p>
-          <div class="chipsRow">
-            <a class="tag" href="${makeGoogleLink(p.google || p.name)}" target="_blank" rel="noopener">Open in Maps</a>
-          </div>
-        </div>
-      `).join("");
-    }
-
-    function renderBudget(){
-      const el = $("budgetPanel");
-      const b = activeTrip.budget;
-      if(!b){
-        el.innerHTML = `<p style="color: var(--muted); margin: 0; padding: 8px">No budget provided for this trip.</p>`;
-        return;
-      }
-
-      const items = (b.items || []).map(i => `
-        <div class="rcard" style="padding:12px">
-          <h4 style="margin:0">${escapeHtml(i.label)}</h4>
-          <p style="margin-top:6px; font-size:16px; color:var(--text); font-weight:800">${escapeHtml(i.value)}</p>
-        </div>
-      `).join("");
-
-      el.innerHTML = `
-        <details open>
-          <summary>
-            <span>${escapeHtml(b.headline || "Budget")}</span>
-            <span class="sumMeta">Breakdown</span>
-          </summary>
-          <div class="detailsBody">
-            <div class="cards" style="grid-template-columns: repeat(5, 1fr); gap:10px">
-              ${items}
-            </div>
-          </div>
-        </details>
-      `;
-
-      // responsive fix for 5-up grid inside budget
-      if(window.innerWidth < 1020){
-        el.querySelector(".cards").style.gridTemplateColumns = "1fr";
-      }
-    }
-
-    // =========================================================
-    // TRIP NAV (header + footer)
-    // =========================================================
-    function renderTripSelect(){
-      const sel = $("tripSelect");
-      sel.innerHTML = trips.map(t => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.name)}</option>`).join("");
-      sel.value = activeTrip.id;
-      sel.addEventListener("change", () => {
-        const next = trips.find(t => t.id === sel.value);
-        if(next) setTrip(next);
-      });
-    }
-
-    function renderFooterTrips(){
-      const box = $("footerTrips");
-      box.innerHTML = trips.map(t => `<a href="#" data-trip="${escapeHtml(t.id)}">${escapeHtml(t.name)}</a>`).join("");
-      box.querySelectorAll("a[data-trip]").forEach(a => {
-        a.addEventListener("click", (e) => {
-          e.preventDefault();
-          const id = a.getAttribute("data-trip");
-          const next = trips.find(t => t.id === id);
-          if(next) setTrip(next);
-          window.scrollTo({ top: 0, behavior: "smooth" });
-        });
-      });
-    }
-
-    // =========================================================
-    // SHARE
-    // =========================================================
-    async function copyShareLink(){
-      const url = new URL(window.location.href);
-      url.searchParams.set("trip", activeTrip.id);
-      try{
-        await navigator.clipboard.writeText(url.toString());
-        alert("Share link copied.");
-      }catch{
-        prompt("Copy this link:", url.toString());
-      }
-    }
-
-    // =========================================================
-    // SET TRIP (single source of truth)
-    // =========================================================
-    function setTrip(trip){
-      activeTrip = trip;
-      activeFilters.clear();
-
-      $("siteSubtitle").textContent = trip.short || "Interactive trip guide";
-      $("kickerText").textContent = trip.short || "Trip guide";
-      $("heroTitle").textContent = trip.heroTitle || trip.name;
-      $("heroSub").textContent = trip.heroSub || "";
-
-      // Meta pills
-      const metaRow = $("metaRow");
-      metaRow.innerHTML = "";
-      (trip.meta || []).forEach(m => {
-        const div = document.createElement("div");
-        div.className = "pill";
-        div.textContent = m;
-        metaRow.appendChild(div);
-      });
-
-      // Google map URLs (if missing, we keep "#" but pin links still open via search)
-      $("openMapBtn").href = trip.googleMapUrl || "#";
-      $("primaryCta").href = trip.googleMapUrl || "#";
-      $("itineraryOpenMapBtn").href = trip.googleMapUrl || "#";
-      $("stickyOpenMap").href = trip.googleMapUrl || "#";
-      $("footerOpenMap").href = trip.googleMapUrl || "#";
-      $("drawerOpenGoogleBtn").href = (trip.googleMapUrl && trip.googleMapUrl !== "#") ? trip.googleMapUrl : "#";
-
-      // Footer
-      $("footerBrand").textContent = trip.name;
-      $("footerDesc").textContent = trip.short || "Interactive guide";
-      $("footerMeta").textContent = "Map + plan + food + photo spots. Built for execution.";
-
-      // Update header selector
-      $("tripSelect").value = trip.id;
-
-      // Update URL param
-      const url = new URL(window.location.href);
-      url.searchParams.set("trip", trip.id);
-      window.history.replaceState({}, "", url);
-
-      // Map view + content
-      map.setView(trip.mapView.center, trip.mapView.zoom);
-      renderTripTabs();
-      renderFilterChips();
-      addMarkers();
-      renderPoiList($("searchInput").value || "");
-      renderItinerary();
-      renderRestaurants();
-      renderPhotos();
-      renderBudget();
-      renderFooterTrips();
-      showDrawer(false);
-    }
-
-    // =========================================================
-    // INIT + EVENTS
-    // =========================================================
-    function wireEvents(){
-      $("drawerBtn2").addEventListener("click", () => showDrawer(true));
-      $("openDrawerBtn").addEventListener("click", () => showDrawer(true));
-      $("closeDrawerBtn").addEventListener("click", () => showDrawer(false));
-
-      $("fitBtn").addEventListener("click", () => addMarkers());
-
-      $("toggleLabelsBtn").addEventListener("click", () => {
-        labelsEnabled = !labelsEnabled;
-        $("toggleLabelsBtn").textContent = labelsEnabled ? "Labels" : "No labels";
-        addMarkers();
-      });
-
-      $("searchInput").addEventListener("input", (e) => renderPoiList(e.target.value));
-      $("clearSearchBtn").addEventListener("click", () => {
-        $("searchInput").value = "";
-        renderPoiList("");
-      });
-
-      $("copyShareBtn").addEventListener("click", copyShareLink);
-      $("footerShare").addEventListener("click", (e) => { e.preventDefault(); copyShareLink(); });
-      $("stickyPins").addEventListener("click", () => showDrawer(true));
-    }
-
-    document.addEventListener("DOMContentLoaded", () => {
-      $("year").textContent = new Date().getFullYear();
-
-      // URL param: ?trip=yucatan-8d
-      const params = new URLSearchParams(window.location.search);
-      const t = params.get("trip");
-      if(t){
-        const found = trips.find(x => x.id === t);
-        if(found) activeTrip = found;
-      }
-
-      renderTripSelect();
-      initMap();
-      wireEvents();
-
-      setTrip(activeTrip);
     });
-  </script>
+  });
+}
+
+function renderMap(trip){
+  const fallbackEmbed = `
+    <iframe class="mapFrame" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+      src="https://www.google.com/maps/embed/v1/place?key=REPLACE_WITH_API_KEY&q=${encodeURIComponent(trip.routeLine || trip.name)}">
+    </iframe>
+  `;
+
+  const embed = trip.mapEmbedUrl && trip.mapEmbedUrl.startsWith("http")
+    ? `<iframe class="mapFrame" loading="lazy" src="${trip.mapEmbedUrl}"></iframe>`
+    : `<div style="color:rgba(255,255,255,.75);padding:12px 0">No custom embed set. Use “Open Live Google Map”.</div>`;
+
+  viewMap.innerHTML = `
+    <div class="section">
+      <div class="sectionHeader">
+        <div>
+          <h2>Map + Pins</h2>
+          <p>Search pins. Open in Google Maps for navigation.</p>
+        </div>
+        <a class="ghostCta" href="${trip.googleMapUrl}" target="_blank" rel="noopener">Open Live Google Map</a>
+      </div>
+      <div class="sectionBody">
+        ${embed}
+
+        <div class="searchRow">
+          <input id="pinSearch" placeholder="Search pins (e.g., Cusco, airport, Pachacamac)" />
+          <button class="btn primary" id="fitPins">Show all pins</button>
+        </div>
+
+        <div class="pinList" id="pinList"></div>
+      </div>
+    </div>
+  `;
+
+  // Build pin list from restaurants + day locations (compact)
+  const pins = [];
+  (trip.days||[]).forEach(d=>{
+    (d.locations||[]).forEach(loc=>{
+      pins.push({ name: loc, area: "Location", map: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc)}`});
+    });
+  });
+  (trip.restaurants||[]).forEach(r=>{
+    pins.push({ name: r.name, area: r.area, map: r.map });
+  });
+
+  // De-dupe pins by name+area
+  const seen = new Set();
+  const uniquePins = pins.filter(p=>{
+    const k = (p.name+"|"+p.area).toLowerCase();
+    if(seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+
+  const pinList = document.getElementById("pinList");
+  const pinSearch = document.getElementById("pinSearch");
+
+  function renderPins(filter=""){
+    const f = filter.trim().toLowerCase();
+    const list = uniquePins.filter(p=>{
+      if(!f) return true;
+      return (p.name+" "+p.area).toLowerCase().includes(f);
+    }).slice(0, 40);
+
+    pinList.innerHTML = list.map(p=>`
+      <div class="pinItem">
+        <div>
+          <strong>${p.name}</strong>
+          <small>${p.area}</small>
+        </div>
+        <a href="${p.map}" target="_blank" rel="noopener">Open</a>
+      </div>
+    `).join("") || `<div style="color:rgba(255,255,255,.7);padding:8px 0">No pins match your search.</div>`;
+  }
+  renderPins("");
+
+  pinSearch.addEventListener("input", ()=>renderPins(pinSearch.value));
+  document.getElementById("fitPins").addEventListener("click", ()=>{
+    pinSearch.value = "";
+    renderPins("");
+    window.scrollTo({top:0, behavior:"smooth"});
+  });
+}
+
+function renderFood(trip){
+  const byArea = {};
+  (trip.restaurants||[]).forEach(r=>{
+    const key = r.area || "Other";
+    byArea[key] = byArea[key] || [];
+    byArea[key].push(r);
+  });
+
+  viewFood.innerHTML = `
+    <div class="section">
+      <div class="sectionHeader">
+        <div>
+          <h2>Food</h2>
+          <p>Short, curated list. Open locations directly in Maps.</p>
+        </div>
+        <button class="btn small" id="foodQuick">Open day restaurants</button>
+      </div>
+      <div class="sectionBody">
+        ${Object.keys(byArea).sort().map(area=>`
+          <div class="dayCard">
+            <div class="dayTop">
+              <h3 class="dayTitle">${area}</h3>
+              <div class="dayTags"><span class="tag">${byArea[area].length} spots</span></div>
+            </div>
+            <div style="margin-top:10px">
+              ${byArea[area].map(r=>`
+                <div class="restItem">
+                  <div>
+                    <strong>${r.name}</strong>
+                    <small>${r.price}${r.why ? " · "+r.why : ""}</small>
+                  </div>
+                  <a href="${r.map}" target="_blank" rel="noopener">Open</a>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        `).join("") || `<div style="color:rgba(255,255,255,.7)">No restaurants added for this trip yet.</div>`}
+      </div>
+    </div>
+  `;
+
+  document.getElementById("foodQuick").addEventListener("click", ()=>{
+    // open drawer for first day as “default” to guide dumb users
+    const first = trip.days?.[0];
+    if(!first) return;
+    const locs = (first.locations||[]).map(s=>s.toLowerCase());
+    const matches = (trip.restaurants||[]).filter(r=>{
+      const hay = (r.area + " " + r.name).toLowerCase();
+      return locs.some(l => hay.includes(l));
+    });
+    openDrawer({ title:"Restaurants", sub:first.title, items: matches });
+  });
+}
+
+function renderBudget(trip){
+  if(!trip.budget){
+    viewBudget.innerHTML = `
+      <div class="section">
+        <div class="sectionHeader"><h2>Budget</h2><p>No budget added for this trip yet.</p></div>
+        <div class="sectionBody" style="color:rgba(255,255,255,.72)">Add a budget object to TRIPS.${trip.id}.budget</div>
+      </div>
+    `;
+    return;
+  }
+
+  const b = trip.budget;
+  viewBudget.innerHTML = `
+    <div class="section">
+      <div class="sectionHeader">
+        <div>
+          <h2>Budget</h2>
+          <p>High-level numbers first. Day drill-down only if needed.</p>
+        </div>
+      </div>
+      <div class="sectionBody">
+        <section class="budgetCard">
+          <div class="budgetHeader">
+            <h2>Trip Spend (${b.range})</h2>
+            <div class="budgetMeta">
+              <span class="pill">${b.rate}</span>
+            </div>
+          </div>
+
+          <div class="budgetTop">
+            <div class="budgetTotal">
+              <div class="label">Total Spend</div>
+              <div class="value">${moneyUSD(b.totalUSD)}</div>
+              <div class="sub">≈ ${moneyPEN(b.totalPEN)}</div>
+            </div>
+
+            <div class="budgetSplit">
+              ${b.split.map(s=>`
+                <div class="splitRow">
+                  <span>${s.label}</span>
+                  <strong>${s.primary}</strong>
+                  ${s.secondary ? `<em>${s.secondary}</em>` : `<em></em>`}
+                </div>
+              `).join("")}
+            </div>
+          </div>
+
+          <details class="budgetNotes">
+            <summary>Notes</summary>
+            <ul>${b.notes.map(n=>`<li>${n}</li>`).join("")}</ul>
+          </details>
+
+          <div class="budgetDays">
+            ${b.days.map(d=>`
+              <button class="dayRow" data-itinerary-jump="${d.key}">
+                <span>${d.day}</span><strong>${moneyUSD(d.usd)}</strong><em>≈ ${moneyPEN(d.pen)}</em>
+              </button>
+            `).join("")}
+          </div>
+        </section>
+      </div>
+    </div>
+  `;
+
+  // Jump to itinerary day from budget
+  viewBudget.querySelectorAll("[data-itinerary-jump]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const key = btn.dataset.itineraryJump;
+      setView("plan");
+      setTimeout(()=>{
+        const target = document.querySelector(`[data-itinerary-day="${key}"]`);
+        if(target) target.scrollIntoView({behavior:"smooth", block:"start"});
+      }, 80);
+    });
+  });
+}
+
+function renderAll(){
+  const trip = TRIPS[currentTripId];
+  renderTripSelect();
+  renderHero(trip);
+  renderPlan(trip);
+  renderMap(trip);
+  renderFood(trip);
+  renderBudget(trip);
+
+  // Default: keep Plan active for “dumb user”
+  setView("plan");
+}
+
+/* =========================
+   INIT
+========================= */
+renderAll();
+</script>
 </body>
 </html>
